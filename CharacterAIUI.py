@@ -3,6 +3,7 @@ import openai
 from pinecone import Pinecone, ServerlessSpec
 import os
 from dotenv import load_dotenv
+from VoiceGenerator import text_to_speech
 
 # Load API keys from .env
 load_dotenv()
@@ -10,11 +11,10 @@ PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Initialize Pinecone
-# ✅ Correct way to initialize Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY)
 index_name = "character-index"
 
-# ✅ Connect to the existing index
+# Connect to the existing index
 index = pc.Index(index_name)
 
 # Character styles
@@ -38,9 +38,9 @@ if st.button("Get Response"):
     if query:
         # Query Pinecone for relevant context
         query_embedding = client.embeddings.create(
-            input=query,  # ✅ No need for a list `[]`
+            input=query,
             model="text-embedding-3-small"
-        ).data[0].embedding  # ✅ New way to access the response
+        ).data[0].embedding
 
         results = index.query(vector=query_embedding, top_k=3, include_metadata=True)
 
@@ -57,9 +57,15 @@ if st.button("Get Response"):
 
         # Get GPT response
         response = openai.chat.completions.create(
-            model="gpt-3.5-turbo",  # ✅ Use this if GPT-4 is unavailable
+            model="gpt-3.5-turbo",
             messages=[{"role": "system", "content": prompt}]
         )
 
         # Display response
         st.markdown(f"**{character} says:** {response.choices[0].message.content}")
+
+        # Extract generated response text
+        response_text = response.choices[0].message.content
+
+        # Convert response to speech
+        text_to_speech(response_text, character)
